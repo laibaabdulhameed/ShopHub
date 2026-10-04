@@ -178,6 +178,13 @@ def get_product(product_id : int):
 
 @app.post("/products")
 def add_product(product : Product):
+    product = {
+        "id" : product.id,
+        "name" : product.name,
+        "price" : product.price,
+        "category" : product.category,
+        "stock" : product.stock
+    }
     products.append(product)
     return product
         
