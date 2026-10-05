@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Path,Query
+from typing import Annotated
 from schemas.product import Product
 from enum import Enum
 from typing import Optional
@@ -153,7 +154,8 @@ class Category(str,Enum):
     FURNITURE = "Furniture"
 
 @app.get("/products")
-def view_products(category : Category | None = None, search : str | None = None, min_price : Optional[float] = None, max_price : Optional[float] = None , limit : Optional[int] = None):
+def view_products(category : Category | None = None, search : str | None = None, min_price : Optional[float] = None, 
+                max_price : Optional[float] = None , limit : Annotated[int|None, Query(gt=0)] = None) :
         matched_products = products
         if category is not None:
             matched_products = [product for product in matched_products if product["category"] == category]
@@ -170,7 +172,7 @@ def view_products(category : Category | None = None, search : str | None = None,
 
 
 @app.get("/products/{product_id}")
-def get_product(product_id : int):
+def get_product(product_id : Annotated[int, Path(gt=0)]):
     for product in products:
         if product["id"] == product_id:
             return product

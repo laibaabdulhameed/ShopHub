@@ -1,8 +1,8 @@
-from pydantic import BaseModel 
+from pydantic import BaseModel,Field
 
 class Product(BaseModel):
-    id : int 
-    name : str
-    price : float
+    id : int = Field(gt=0 , description="Must be greater than zero.")
+    name : str = Field(min_length=2, description="Minimum length is two.")
+    price : float = Field(gt=0 , description="Must be greater than zero.")
     category :str
-    stock : int
+    stock : int = Field(ge=0 , description="Must be greater than or equal zero.")
