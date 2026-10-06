@@ -1,6 +1,6 @@
 from fastapi import FastAPI,Path,Query
 from typing import Annotated
-from schemas.product import Product
+from schemas.product import Product, Supplier
 from enum import Enum
 from typing import Optional
 app = FastAPI()
@@ -185,7 +185,11 @@ def add_product(product : Product):
         "name" : product.name,
         "price" : product.price,
         "category" : product.category,
-        "stock" : product.stock
+        "stock" : product.stock,
+        "supplier" : {
+            "supplier_name" : product.supplier.name,
+            "country" : product.supplier.country
+        }
     }
     products.append(product)
     return product
