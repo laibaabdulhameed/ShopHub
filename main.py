@@ -1,6 +1,6 @@
-from fastapi import FastAPI,Path,Query
+from fastapi import FastAPI,Path,Query,status
 from typing import Annotated
-from schemas.product import Product, Supplier
+from schemas.product import Product, ProductResponse2
 from enum import Enum
 from typing import Optional
 app = FastAPI()
@@ -153,7 +153,7 @@ class Category(str,Enum):
     ACCESSORIES = "Accessories"
     FURNITURE = "Furniture"
 
-@app.get("/products")
+@app.get("/products",response_model=list[ProductResponse],status_code=status.HTTP_200_OK)
 def view_products(category : Category | None = None, search : str | None = None, min_price : Optional[float] = None, 
                 max_price : Optional[float] = None , limit : Annotated[int|None, Query(gt=0)] = None) :
         matched_products = products
@@ -171,14 +171,14 @@ def view_products(category : Category | None = None, search : str | None = None,
         return matched_products
 
 
-@app.get("/products/{product_id}")
+@app.get("/products/{product_id}", response_model=ProductResponse,status_code=status.HTTP_200_OK)
 def get_product(product_id : Annotated[int, Path(gt=0)]):
     for product in products:
         if product["id"] == product_id:
             return product
     return {"Product Not Found!"}
 
-@app.post("/products")
+@app.post("/products",response_model=ProductResponse,status_code=status.HTTP_201_CREATED)
 def add_product(product : Product):
     product = {
         "id" : product.id,
@@ -194,20 +194,22 @@ def add_product(product : Product):
     products.append(product)
     return product
         
-@app.delete("/products/{product_id}")
+@app.delete("/products/{product_id}",status_code= status.HTTP_204_NO_CONTENT)
 def delete_product(product_id : int):
     products[:] = [p for p in products if p["id"] != product_id]
 
-@app.put("/products/{product_id}")
+@app.put("/products/{product_id}",response_model=ProductResponse2,status_code=status.HTTP_200_OK)
 def update_product(product_id : int, product : Product):
     updated_data = {
         "id" : product_id,
         "name" : product.name,
         "price" : product.price,
         "category" : product.category,
-        "stock" : product.stock
+        "stock" : product.stock,
+        "supplier" : {
+             "supplier_name" : product.supplier.name,
+             "country" : product.supplier.country
+        }
     }
-
     products[:] = [updated_data if product["id"] == product_id else product for product in products]
-
-            
+    return product_id 
