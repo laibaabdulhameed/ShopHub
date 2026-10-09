@@ -1,6 +1,6 @@
-from fastapi import FastAPI,Path,Query,status
+from fastapi import FastAPI,Path,Query,HTTPException,status
 from typing import Annotated
-from schemas.product import Product, ProductResponse2
+from schemas.product import Product, ProductResponse
 from enum import Enum
 from typing import Optional
 app = FastAPI()
@@ -11,7 +11,12 @@ products = [
     "name": "Laptop",
     "price": 85000,
     "category": "Electronics",
-    "stock": 10
+    "stock": 10,
+    "supplier": {
+        "name" : "Ali",
+        "country" : "Pakistan"
+    }
+
   },
   {
     "id": 2,
@@ -167,16 +172,16 @@ def view_products(category : Category | None = None, search : str | None = None,
             matched_products = [product for product in matched_products if product["price"] <= max_price]
         if limit is not None:
             matched_products = matched_products[:limit]
-
         return matched_products
-
 
 @app.get("/products/{product_id}", response_model=ProductResponse,status_code=status.HTTP_200_OK)
 def get_product(product_id : Annotated[int, Path(gt=0)]):
     for product in products:
         if product["id"] == product_id:
-            return product
-    return {"Product Not Found!"}
+          return product
+    raise HTTPException(
+        status_code=404,
+        detail="Item not found")
 
 @app.post("/products",response_model=ProductResponse,status_code=status.HTTP_201_CREATED)
 def add_product(product : Product):
@@ -194,11 +199,22 @@ def add_product(product : Product):
     products.append(product)
     return product
         
-@app.delete("/products/{product_id}",status_code= status.HTTP_204_NO_CONTENT)
+@app.delete("/products/{product_id}", status_code= status.HTTP_204_NO_CONTENT)
 def delete_product(product_id : int):
-    products[:] = [p for p in products if p["id"] != product_id]
+    found = False
+    for product in products:
+        if product["id"] == product_id:
+          found = True
+          products[:] = [p for p in products if p["id"] != product_id]
+          break
+    if not found:
+        raise HTTPException(
+          status_code=404,
+          detail="Item not found"
+      )
 
-@app.put("/products/{product_id}",response_model=ProductResponse2,status_code=status.HTTP_200_OK)
+
+@app.put("/products/{product_id}", response_model=ProductResponse, status_code=status.HTTP_200_OK)
 def update_product(product_id : int, product : Product):
     updated_data = {
         "id" : product_id,
@@ -207,9 +223,19 @@ def update_product(product_id : int, product : Product):
         "category" : product.category,
         "stock" : product.stock,
         "supplier" : {
-             "supplier_name" : product.supplier.name,
-             "country" : product.supplier.country
+            "name" : product.supplier.name,
+            "country" : product.supplier.country
         }
     }
-    products[:] = [updated_data if product["id"] == product_id else product for product in products]
-    return product_id 
+    found = False
+    for product in products:
+        if product["id"] == product_id:
+            found = True
+            products[:] = [updated_data if product["id"] == product_id else product for product in products]
+            return updated_data
+    if not found:
+        raise HTTPException(
+        status_code=404,
+        detail="Item not found"
+        )
+       
