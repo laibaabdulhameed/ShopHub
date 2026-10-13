@@ -1,6 +1,6 @@
 from fastapi import FastAPI,Path,Query,HTTPException,status
 from typing import Annotated
-from schemas.product import Product, ProductResponse
+from schemas.product import Product, ProductResponse, ProductUpdate
 from enum import Enum
 from typing import Optional
 app = FastAPI()
@@ -160,7 +160,7 @@ class Category(str,Enum):
 
 @app.get("/products",response_model=list[ProductResponse],status_code=status.HTTP_200_OK)
 def view_products(category : Category | None = None, search : str | None = None, min_price : Optional[float] = None, 
-                max_price : Optional[float] = None , limit : Annotated[int|None, Query(gt=0)] = None) :
+              max_price : Optional[float] = None , limit : Annotated[int|None, Query(gt=0)] = None) :
         matched_products = products
         if category is not None:
             matched_products = [product for product in matched_products if product["category"] == category]
@@ -215,7 +215,7 @@ def delete_product(product_id : int):
 
 
 @app.put("/products/{product_id}", response_model=ProductResponse, status_code=status.HTTP_200_OK)
-def update_product(product_id : int, product : Product):
+def replace_product(product_id : int, product : Product):
     updated_data = {
         "id" : product_id,
         "name" : product.name,
@@ -238,4 +238,21 @@ def update_product(product_id : int, product : Product):
         status_code=404,
         detail="Item not found"
         )
-       
+
+@app.patch("/products/{product_id}")
+def update_product(product_id : int, product : ProductUpdate):
+    product_data = product.model_dump(exclude_unset=True)
+    found = False 
+    for product in products:
+        if product["id"] == product_id:
+            found = True
+            product.update(product_data)
+            return product
+    if not found:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found"
+        )
+
+      
+            

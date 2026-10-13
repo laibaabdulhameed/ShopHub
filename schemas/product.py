@@ -20,3 +20,10 @@ class ProductResponse(BaseModel):
     stock : int
     supplier : Supplier
 
+class ProductUpdate(BaseModel):
+    name: str | None = None
+    price: float | None = None
+    category: str | None = None
+    stock: int | None = None
+    supplier: Supplier | None = None
+
