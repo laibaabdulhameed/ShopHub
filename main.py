@@ -1,6 +1,7 @@
-from fastapi import FastAPI,Path,Query,HTTPException,status
+from fastapi import FastAPI,Path,Query,HTTPException,status,Depends
 from typing import Annotated
 from schemas.product import Product, ProductResponse, ProductUpdate
+from services import get_product_by_id
 from enum import Enum
 from typing import Optional
 app = FastAPI()
@@ -175,13 +176,9 @@ def view_products(category : Category | None = None, search : str | None = None,
         return matched_products
 
 @app.get("/products/{product_id}", response_model=ProductResponse,status_code=status.HTTP_200_OK)
-def get_product(product_id : Annotated[int, Path(gt=0)]):
-    for product in products:
-        if product["id"] == product_id:
-          return product
-    raise HTTPException(
-        status_code=404,
-        detail="Item not found")
+def get_product(product = Depends(get_product_by_id)):
+    return product
+    
 
 @app.post("/products",response_model=ProductResponse,status_code=status.HTTP_201_CREATED)
 def add_product(product : Product):
@@ -200,24 +197,15 @@ def add_product(product : Product):
     return product
         
 @app.delete("/products/{product_id}", status_code= status.HTTP_204_NO_CONTENT)
-def delete_product(product_id : int):
-    found = False
-    for product in products:
-        if product["id"] == product_id:
-          found = True
-          products[:] = [p for p in products if p["id"] != product_id]
-          break
-    if not found:
-        raise HTTPException(
-          status_code=404,
-          detail="Item not found"
-      )
+def delete_product(product = Depends(get_product_by_id)):
+    products[:] = [p for p in products if p["id"] != product["i"]]
+    
 
 
 @app.put("/products/{product_id}", response_model=ProductResponse, status_code=status.HTTP_200_OK)
-def replace_product(product_id : int, product : Product):
+def replace_product(product: Product, existing_product=Depends(get_product_by_id)):
     updated_data = {
-        "id" : product_id,
+        "id" : existing_product["id"],
         "name" : product.name,
         "price" : product.price,
         "category" : product.category,
@@ -227,32 +215,16 @@ def replace_product(product_id : int, product : Product):
             "country" : product.supplier.country
         }
     }
-    found = False
-    for product in products:
-        if product["id"] == product_id:
-            found = True
-            products[:] = [updated_data if product["id"] == product_id else product for product in products]
-            return updated_data
-    if not found:
-        raise HTTPException(
-        status_code=404,
-        detail="Item not found"
-        )
+    products[:] = [updated_data if product["id"] == existing_product["id"] else product for product in products]
+    return updated_data
+   
 
 @app.patch("/products/{product_id}")
-def update_product(product_id : int, product : ProductUpdate):
+def update_product( product : ProductUpdate, existing_product=Depends(get_product_by_id)):
     product_data = product.model_dump(exclude_unset=True)
-    found = False 
-    for product in products:
-        if product["id"] == product_id:
-            found = True
-            product.update(product_data)
-            return product
-    if not found:
-        raise HTTPException(
-            status_code=404,
-            detail="Item not found"
-        )
+    existing_product.update(product_data)
+    return existing_product
+   
 
       
             
